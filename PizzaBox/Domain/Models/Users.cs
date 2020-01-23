@@ -10,6 +10,13 @@ namespace Domain.Models
             Orders = new HashSet<Orders>();
         }
 
+        public Users(string name, string code)
+        {
+            UserName = name;
+            UserCode = code;
+            Orders = new HashSet<Orders>();
+        }
+
         public int UserId { get; set; }
         public string UserName { get; set; }
         public string UserCode { get; set; }

@@ -16,6 +16,7 @@ namespace Domain.Models
             UserId = u;
             PizzaAmount = p;
             Cost = price;
+            Pizzas = new HashSet<Pizzas>();
         }
         public int OrderId { get; set; }
         public int StoreId { get; set; }

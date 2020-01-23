@@ -19,6 +19,7 @@ namespace Project_0
         public static Pizzas Italian = new Pizzas("Thin crust", "8", 7.50m);
         public static Pizzas Rich = new Pizzas("Stuffed", "12", 130.00m);
 
+        public static List<String> presetList = new List<String>();
         public static Dictionary<String, Decimal> priceLibraryS = new Dictionary<string, Decimal>();
         public static Dictionary<String, Decimal> priceLibraryC = new Dictionary<string, Decimal>();
         public static Dictionary<String, Decimal> toppingLibrary = new Dictionary<string, decimal>();
@@ -27,11 +28,10 @@ namespace Project_0
         public static void PizzaOrdering(Users u, Stores s, PizzaDBContext pdb)
         {
             Orders currentOrder = new Orders(s.StoreId, u.UserId, 0, 0.00m);
-            //TO DO Make it dictionary to keep track of "premade" vs "Custom"
-            //List<Pizzas> pizzaList = new List<Pizzas>();
             Dictionary<int,List<string>> vastToppings = new Dictionary<int, List<string>>();
             Dictionary<int,Pizzas> vastPizzas= new Dictionary<int,Pizzas>();
             int dictCounter = 0;
+
             var RepoTopping = new Storing.Repositories.RepositoryToppings(pdb);
             var RepoOrder = new Storing.Repositories.RepositoryOrder(pdb);
             var RepoPizza = new Storing.Repositories.RepositoryPizza(pdb);
@@ -39,16 +39,15 @@ namespace Project_0
 
             string size;
             string crust;
+            
             bool check = false;
-            Console.WriteLine("\n");
-            Console.WriteLine("At least one pizza must be chosen before an order can be placed. \n " +
+            Console.WriteLine("\nAt least one pizza must be chosen before an order can be placed. \n " +
                 "No more than 100 pizzas per order can be made. \n" +
                 "The price cannot exceed 250 dollars.");
             while (!check)
             {
-                Console.WriteLine("\n");
-                Console.WriteLine("Type 'Back' to cancel your order. Type 'Preview' to preview your order.");
-                Console.WriteLine("Please type 'Preset' to order a preset pizza or type 'Custom' to build your pizza from scratch.'");
+                Console.WriteLine("\nType 'Back' to cancel your order. \nType 'Preview' to preview your order.");
+                Console.WriteLine("Type 'Preset' to order a preset pizza. \nType 'Custom' to build your pizza from scratch.'");
                 if (currentOrder.PizzaAmount > 0)
                 {
                     Console.WriteLine($"Type 'Place order' to submit your order." +
@@ -56,8 +55,7 @@ namespace Project_0
                 }
 
                 string choice = Console.ReadLine();
-
-                //TO DO: Add a way to remove pizzas.
+                
                 if (choice == "Back")
                     return;
 
@@ -80,13 +78,12 @@ namespace Project_0
                         Orders IDOrder = RepoOrder.Addp(currentOrder);
                         if (IDOrder == null)
                         {
-                            Console.WriteLine("Something went wrong when placing the order.");
+                            Console.WriteLine("\nSomething went wrong when placing the order.\n");
                         }
                         else
                         {
                             for(int up = 0; up < dictCounter; up++)
                             {
-                                Console.WriteLine($"Pizza {up}");
                                 Pizzas p = vastPizzas[up];
                                 p.OrderId = IDOrder.OrderId;
                                 Pizzas p2 = RepoPizza.Addp(p);
@@ -100,28 +97,43 @@ namespace Project_0
                                     RepoTopping.Addp(t);
                                 }
                             }
+                            u.StoreId = s.StoreId;
+                            u.StoreTime = currentOrder.OrderTime;
+                            RepoUser.Modifyp(u);
+                            Console.WriteLine("Pizza order has been placed. User's recent store has been updated. Returning to User menu.");
+                            Console.WriteLine("\n");
+                            return;
                         }
-
-                        u.StoreId = s.StoreId;
-                        u.StoreTime = currentOrder.OrderTime;
-                        RepoUser.Modifyp(u);
-                        Console.WriteLine("Pizza order has been placed. User's recent store has been updated. Returning to User menu.");
-                        Console.WriteLine("\n");
-                        return;
                     }
                 }
                 else if (choice == "Preset")
                 {
                     bool check3 = false;
                     Pizzas current;
+                    List<string> pToppings = new List<string>(5);
                     while (!check3)
                     {
                         Console.WriteLine("Type 'Back' to exit.");
-                        Console.WriteLine("Please Type one of the following options for your pizza.\n" +
-                            "'Hawaiian', 'BBQ', 'American', 'Italian', 'Rich', and 'Canadian'.");
+                        Console.WriteLine("Please Type one of the following options for your pizza.");
+                        foreach(String p in presetList)
+                        {
+                            Console.WriteLine($"'{p}'");
+                        }
                         string preset = Console.ReadLine();
-                        List<string> pToppings = new List<string>(5);
-                        if (preset == "Hawaiian")
+                        if(!presetList.Contains(preset))
+                        {
+                            if (preset == "Back")
+                            {
+                                current = null;
+                                check3 = true;
+                            }
+                            else
+                            {
+                                Console.WriteLine("The pizza name you provided is not offered here. Please try again.");
+                                current = null;
+                            }
+                        }
+                        else if (preset == "Hawaiian")
                         {
                             current = new Pizzas("Original","8",6.00m);
                             pToppings.Add("Cheddar Cheese");
@@ -165,26 +177,28 @@ namespace Project_0
                             pToppings.Add("Mozzarella Cheese");
                             pToppings.Add("Meat Sauce");
                         }
-                        else if (preset == "Back")
-                        {
-                            current = null;
-                            check3 = true;
-                        }
                         else
                         {
-                            Console.WriteLine("The pizza name you provided is not offered here. Please try again.");
+                            Console.WriteLine("Error: The pizza name you provided is not offered here. Please try again.");
                             current = null;
                         }
+
                         if (current != null)
                         {
-                            Console.WriteLine($"Adding {preset} Pizza to order list.");
-                            currentOrder.PizzaAmount = currentOrder.PizzaAmount + 1;
-                            currentOrder.Cost += current.PizzaCost;
-                            //pizzaList.Add(current);
-                            vastPizzas.Add(dictCounter, current);
-                            vastToppings.Add(dictCounter, pToppings);
-                            dictCounter++;
-                            check3 = true;
+                            if (currentOrder.Cost + current.PizzaCost > 250m)
+                                Console.WriteLine($"This pizza cannot be added. The cost, {currentOrder.Cost + current.PizzaCost}, exceeds the limit of $250.00.");
+                            else if (currentOrder.PizzaAmount + 1 > 100)
+                                Console.WriteLine($"This pizza cannot be added. The amount, {currentOrder.PizzaAmount + 1}, exceeds the limit of 100.");                          
+                            else 
+                            {
+                                Console.WriteLine($"Adding {preset} Pizza to order list.");
+                                currentOrder.PizzaAmount = currentOrder.PizzaAmount + 1;
+                                currentOrder.Cost += current.PizzaCost;
+                                vastPizzas.Add(dictCounter, current);
+                                vastToppings.Add(dictCounter, pToppings);
+                                dictCounter++;
+                                check3 = true;
+                            }
                         }
                     }
                 }
@@ -198,11 +212,10 @@ namespace Project_0
                     while (!check2)
                     {
                         Console.WriteLine("Type 'Back' to exit.");
-                        Console.WriteLine("Type one of the following options for your pizza size.");
+                        Console.WriteLine("Here are the different sizes of pizza.");
                         foreach (string Sdict in priceLibraryS.Keys)
-                        {
                             Console.WriteLine($"'{Sdict}' at cost {priceLibraryS[Sdict]}");
-                        }
+                        Console.WriteLine("Type the desired size of pizza.");
                         size = Console.ReadLine();
                         if (size == "Back")
                         {
@@ -210,7 +223,7 @@ namespace Project_0
                             check2 = true;
                         }
                         else if (!priceLibraryS.ContainsKey(size))
-                            Console.WriteLine("Please input a proper size.");
+                            Console.WriteLine("Type a proper size of pizza.");
                         else
                         {
                             price += priceLibraryS[size];
@@ -223,11 +236,10 @@ namespace Project_0
                     {
                         if (skipCustom != true)
                         {
-                            Console.WriteLine("Now please type one of the following crust types for your pizza.");// \n" +
+                            Console.WriteLine("Here are the different types of crusts.");// \n" +
                             foreach (string Cdict in priceLibraryC.Keys)
-                            {
                                 Console.WriteLine($"'{Cdict}' at cost {priceLibraryC[Cdict]}");
-                            }
+                            Console.WriteLine("Type the name of the crust you want.");
                             crust = Console.ReadLine();
                             if (crust == "Back")
                             {
@@ -235,7 +247,7 @@ namespace Project_0
                                 check2 = false;
                             }
                             else if (!priceLibraryC.ContainsKey(crust))
-                                Console.WriteLine("Please input a proper crust type");
+                                Console.WriteLine("Type a proper crust name.");
                             else
                             {
                                 price += priceLibraryC[crust];
@@ -244,16 +256,14 @@ namespace Project_0
                             }
                         }
                         else
-                        {
                             check2 = false;
-                        }
                     }
                     List<string> pToppings = new List<string>(5);
                     while (!check2)
                     {
                         Console.WriteLine("Marinara Sauce and Mozzarella Cheese are the default toppings. (both of these toppings are free).\n" +
-                            "If you would like to replace these toppings with up to 5 of your own personal choice, Type 'Yes' now.\n" +
-                            "If these two toppings are find Type 'No' to skip the toppings phase.");
+                            "Type 'Yes' to replace these toppings with up to 5 of your own personal choice.\n" +
+                            "Type 'No' to use the default toppings.");
                         string toppingPhase = Console.ReadLine();
                         if (toppingPhase == "Yes")
                         {
@@ -264,7 +274,7 @@ namespace Project_0
                             }
                             bool loopTopping = false;
                             Console.WriteLine("You must have at least 2 toppings, and no more than 5 toppings.\n" +
-                                "Type 'Submit' to add your selected toppings. Type 'Back' to use the default toppings.");
+                                "Type 'Submit' to add your selected toppings. \nType 'Back' to use the default toppings.");
                             while (!loopTopping)
                             {
                                 if (pToppings.Count < 5)
@@ -294,7 +304,7 @@ namespace Project_0
                                 }
                                 else if (pToppings.Count >= 5)
                                 {
-                                    Console.WriteLine("You cannot have over 5 toppings. You must type 'Submit' to add the toppings or 'Back' to use the default toppings.");
+                                    Console.WriteLine("You cannot have over 5 toppings.\nType'Submit' to add the toppings. \nType 'Back' to use the default toppings.");
                                 }
                                 else if (!toppingLibrary.ContainsKey(numberTopping))
                                     Console.WriteLine("Please input a proper topping");
@@ -319,33 +329,42 @@ namespace Project_0
                     if (skipCustom != true)
                     {
                         foreach (string t in pToppings)
-                        {
                             price += toppingLibrary[t];
-                        }
                         Pizzas custom = new Pizzas(crust, size, price);
-                        Console.WriteLine($"Adding Custom Pizza to order list.");
-                        currentOrder.PizzaAmount++;
-                        currentOrder.Cost += custom.PizzaCost;
-                       // pizzaList.Add(custom);
-                        vastToppings.Add(dictCounter, pToppings);
-                        vastPizzas.Add(dictCounter, custom);
-                        dictCounter++;
+                        if (currentOrder.Cost + custom.PizzaCost > 250m)
+                            Console.WriteLine($"\nThis pizza cannot be added. The cost, {currentOrder.Cost + custom.PizzaCost}, exceeds the limit of $250.00.");
+                        else if (currentOrder.PizzaAmount + 1 > 100)
+                            Console.WriteLine($"\nThis pizza cannot be added. The amount, {currentOrder.PizzaAmount + 1}, exceeds the limit of 100.");
+                        else
+                        {
+                            Console.WriteLine($"\nAdding Custom Pizza to order list.");
+                            currentOrder.PizzaAmount=currentOrder.PizzaAmount+1;
+                            currentOrder.Cost = custom.PizzaCost + currentOrder.Cost;
+                            vastToppings.Add(dictCounter, pToppings);
+                            vastPizzas.Add(dictCounter, custom);
+                            dictCounter++;
+                        }
                     }
                 }
                 else if (choice == "Preview")
                 {
-                    Console.WriteLine("Preview of all Pizzas in your order.");
-                    int counter = 1;
-                    foreach (Pizzas p in vastPizzas.Values)
+                    Console.WriteLine("\nPreview of all Pizzas in your order.");
+                    for (int i = 0; i < dictCounter; i++)
                     {
-                        Console.WriteLine($"Pizza {counter}: Size {p.Size}, Crust {p.Crust}, Price {p.PizzaCost}");
-                        counter++;
+                        Console.WriteLine($"    Pizza {i + 1} = Size: {vastPizzas[i].Size}, Crust: {vastPizzas[i].Crust}, Price: {vastPizzas[i].PizzaCost}");
+                        string cumulative = "";
+                        foreach (string t in vastToppings[i])
+                        {
+                            if (cumulative == "")
+                                cumulative = $"{t}";
+                            else
+                                cumulative = cumulative + $", {t}";
+                        }
+                        Console.WriteLine($"Toppings include: {cumulative}.");
                     }
                 }
                 else
-                {
-                    Console.WriteLine("Please type a valid command.");
-                }
+                    Console.WriteLine("Type a valid command.");
             }
             return;
         }
@@ -357,18 +376,21 @@ namespace Project_0
             bool timeLoop = false;
             while (!timeLoop)
             {
-                Console.WriteLine($"Please provide the {type}. Please format it like this: '{example}'");
+                Console.WriteLine($"\nType your desired {type}. Please format it like this: {example}");
                 result = Console.ReadLine();
                 if (result == "Back")
                     return -1;
                 try
                 {
                     result2 = Convert.ToInt32(result);
-                    timeLoop = true;
+                    if (result2 == -1)
+                        Console.Write($"Invalid {type}. Please try again.");
+                    else
+                        timeLoop = true;
                 }
                 catch
                 {
-                    Console.WriteLine("Invalid Day. Please try again.");
+                    Console.WriteLine($"Invalid {type}. Please try again.");
                 }
             }
             return result2;
@@ -379,22 +401,18 @@ namespace Project_0
             bool Check = false;
             while (!Check)
             {
-                Console.WriteLine("\n");
-                Console.WriteLine($"Type 'History' to view the users's order history, or type 'Recent' to view your most recent pizza store. \n" +
-$"Type 'Order' to view locations and place an order and 'Sign out' to sign out of account {u.UserName}.");
+                Console.WriteLine($"\nType 'History' to view the users's order history. \nType 'Recent' to view your most recent pizza store. \n" +
+$"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign out of account {u.UserName}.");
                 string a = Console.ReadLine();
                 if (a == "Order")
                 {
-                    //Checks to ensure
                     bool approve = false;
                     if (u.StoreTime != null)
                     {
                         DateTime moment = DateTime.Now;
                         TimeSpan TimeDifference = moment - (DateTime)u.StoreTime;
-                        if(TimeDifference.TotalMinutes > 120)
-                        {
+                        if (TimeDifference.TotalMinutes > 120)
                             approve = true;
-                        }
                     }
                     else
                         approve = true;
@@ -402,35 +420,31 @@ $"Type 'Order' to view locations and place an order and 'Sign out' to sign out o
                     if (approve == true)
                     {
                         var locations = RepoStore.Getp();
+                        Console.WriteLine("\nHere are all the store locations to chooose from.");
                         foreach (var l in locations)
                         {
                             Console.WriteLine($"'{l.StoreName}' is the name of store {l.StoreId}.");
                         }
-                        Console.WriteLine("\n");
                         bool Check2 = false;
                         while (!Check2)
                         {
-                            Console.WriteLine("Type the name of the store you wish to order from. Type 'Back' to return to the user menu.");
+                            Console.WriteLine("\nType the name of the store you wish to order from. \nType 'Back' to return to the user menu.");
                             string z = Console.ReadLine();
                             if (z == "Back")
-                            {
                                 Check2 = true;
-                            }
                             else
                             {
                                 Stores y = RepoStore.Findp(z);
                                 if (y == null)
-                                {
                                     Console.WriteLine("Could not find provided name of location, make sure that it is spelled correctly.");
-                                }
                                 else
                                 {
-                                    if(u.StoreId == null || y.StoreId == u.StoreId)
+                                    if (u.StoreId == null || y.StoreId == u.StoreId)
                                     {
                                         PizzaOrdering(u, y, pdb);
                                         Check2 = true;
                                     }
-                                    else if(y.StoreId != u.StoreId)
+                                    else if (y.StoreId != u.StoreId)
                                     {
                                         if (u.StoreTime != null)
                                         {
@@ -442,9 +456,7 @@ $"Type 'Order' to view locations and place an order and 'Sign out' to sign out o
                                                 Check2 = true;
                                             }
                                             else
-                                            {
                                                 Console.WriteLine($"You cannot order from another store until 24 hours have passed since ordering from the previous.");
-                                            }
                                         }
                                         else
                                         {
@@ -453,33 +465,73 @@ $"Type 'Order' to view locations and place an order and 'Sign out' to sign out o
                                     }
                                 }
                             }
-                        } 
+                        }
                     }
                     else
-                    {
                         Console.WriteLine($"Your most recent order was within 2 hours ago, at {u.StoreTime}. You must wait until it's been 2 hours.");
-                    }
                 }
                 else if (a == "History")
                 {
                     var RepoOrder = new Storing.Repositories.RepositoryOrder(pdb);
+                    var RepoPizza = new Storing.Repositories.RepositoryPizza(pdb);
+                    var RepoTopping = new Storing.Repositories.RepositoryToppings(pdb);
+
                     var userOrders = RepoOrder.Getp(u);
+                    List<string> templist = new List<string>();
+                    Console.WriteLine($"\nHere are the orders made for user {u.UserName}.");
                     foreach (var o in userOrders)
                     {
                         Console.WriteLine($"Order {o.OrderId}. {o.PizzaAmount} pizzas ordered at {o.OrderTime} at a cost of {o.Cost}");
+                        templist.Add(o.OrderId.ToString());
                     }
+                    bool check3 = false;
+                    if(templist.Count() == 0)
+                    {
+                        Console.WriteLine("There is currently no order history for this user.");
+                        check3 = true;
+                    }
+                    while (!check3)
+                    {
+                        Console.WriteLine("\nType the Order ID of the order you would like to better examine.\nType 'Back' to return.");
+                        string whatOrder = Console.ReadLine();
+                        if (whatOrder == "Back")
+                            check3 = true;
+                        else if (templist.Contains(whatOrder))
+                        {
+                            var pizzasInOrder = RepoPizza.Getp(whatOrder);
+                            List<Pizzas> ongoingPizzas = new List<Pizzas>();
+                            foreach (var p in pizzasInOrder)
+                            {
+                                ongoingPizzas.Add(p);
+                            }
+                            for (int i = 0; i < ongoingPizzas.Count(); i++)
+                            {
+                                Console.WriteLine($"    Pizza {i + 1} = Size: {ongoingPizzas[i].Size}, Crust: {ongoingPizzas[i].Crust}, Price: {ongoingPizzas[i].PizzaCost}");
+                                var toppingsInPizza = RepoTopping.Getp(ongoingPizzas[i]);
+                                string cumulative = "";
+                                foreach (var t in toppingsInPizza)
+                                {
+                                    if (cumulative == "")
+                                        cumulative = $"{t.Topping}";
+                                    else
+                                        cumulative = cumulative + $", {t.Topping}";
+                                }
+                                Console.WriteLine($"Toppings include: {cumulative}.");
+                            }
+                        }
+                        else
+                            Console.WriteLine("\nThe Order ID is invalid or was not created for this user.");
+                    }    
                 }
                 else if (a == "Recent")
                 {
                     if (u.StoreId != null)
                     {
                         Stores temp = RepoStore.UseIDFindStore((int)u.StoreId);
-                        Console.WriteLine($"Your most recent order was from store {temp.StoreName} at {u.StoreTime}");
+                        Console.WriteLine($"\nYour most recent order was from store {temp.StoreName} at {u.StoreTime}");
                     }
                     else
-                    {
                         Console.WriteLine("You have not ordered pizza from a store yet. There is no 'most recent' store.");
-                    }
                 }
                 else if (a == "Sign out")
                 {
@@ -495,18 +547,18 @@ $"Type 'Order' to view locations and place an order and 'Sign out' to sign out o
             var RepoOrder = new Storing.Repositories.RepositoryOrder(pdb);
             var RepoPizza = new Storing.Repositories.RepositoryPizza(pdb);
             var RepoUser = new Storing.Repositories.RepositoryUser(pdb);
-
+            var RepoTopping = new Storing.Repositories.RepositoryToppings(pdb);
             bool Check = false;
             while (!Check) {
-                Console.WriteLine("\n");
-                Console.WriteLine($"Type 'History' to view the store's order history, or type 'Sales' to view this stores sales history. \n" +
-$"Type 'Inventory' to look at this store's inventory, or type 'Users' to view which users go to this store. \n" +
+                Console.WriteLine($"\nType 'History' to view the store's order history.\nType 'Sales' to view this stores sales history. \n" +
+$"Type 'Inventory' to look at this store's inventory. \nType 'Users' to view which users go to this store. \n" +
 $"Type 'Sign out' to sign out of account {s.StoreName}.");
                 string a = Console.ReadLine();
                 if (a == "History")
                 {
                     var storeOrders = RepoOrder.Getp(s);
                     List<string> tempList = new List<string>();
+                    Console.WriteLine($"\nHere is the store {s.StoreName}'s orders.");
                     foreach (var o in storeOrders)
                     {
                         Console.WriteLine($"Order ID = '{o.OrderId}' placed at time {o.OrderTime}");
@@ -515,53 +567,54 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                     bool check3 = false;
                     if (storeOrders.Count() == 0)
                     {
-                        Console.WriteLine("There is currently no history in regards to orders for this store.");
+                        Console.WriteLine("\nThere is currently no history in regards to orders for this store.");
                         check3 = true;
                     }
                     while (!check3)
                     {
-
-                        Console.WriteLine("Please Type the Order ID of the order you would like to better examine. Type 'Back' to return.");
+                        Console.WriteLine("\nType the Order ID of the order you would like to better examine.\nType 'Back' to return.");
                         string whatOrder = Console.ReadLine();
                         if (whatOrder == "Back")
-                        {
                             check3 = true;
-                        }
                         else if (tempList.Contains(whatOrder))
                         {
                             var pizzasInOrder = RepoPizza.Getp(whatOrder);
-                            int counter = 1;
+                            List<Pizzas> ongoingPizzas = new List<Pizzas>();
                             foreach (var p in pizzasInOrder)
                             {
-                                Console.WriteLine($"Pizza {counter}. Crust type {p.Crust}, Pizza size {p.Size}, Price{p.PizzaCost}");
-                                counter++;
+                                ongoingPizzas.Add(p);
                             }
-                            Console.WriteLine("\n");
+                            for(int i = 0; i < ongoingPizzas.Count(); i++)
+                            {
+                                Console.WriteLine($"    Pizza {i+1} = Size: {ongoingPizzas[i].Size}, Crust: {ongoingPizzas[i].Crust}, Price: {ongoingPizzas[i].PizzaCost}");
+                                var toppingsInPizza = RepoTopping.Getp(ongoingPizzas[i]);
+                                string cumulative = "";
+                                foreach (var t in toppingsInPizza)
+                                {
+                                    if (cumulative == "")
+                                        cumulative = $"{t.Topping}";
+                                    else
+                                        cumulative = cumulative + $", {t.Topping}";
+                                }
+                                Console.WriteLine($"Toppings include: {cumulative}.");
+                            }
                         }
                         else
-                        {
-                            Console.WriteLine("The Order ID is invalid or was not created in this store.");
-                            Console.WriteLine("\n");
-                        }
+                            Console.WriteLine("\nThe Order ID is invalid or was not created in this store.");
                     }
                 }
 
                 else if (a == "Inventory")
                 {
-                    Console.WriteLine($"Here is the inventory of {s.StoreName}");
+                    Console.WriteLine($"\nHere is the inventory of {s.StoreName}");
                     foreach(string top in toppingLibrary.Keys)
-                    {
                         Console.WriteLine($"Topping: {top}");
-                    }
                     foreach(string crust in priceLibraryC.Keys)
-                    {
                         Console.WriteLine($"Crust: {crust}");
-                    }
                     foreach(string size in priceLibraryS.Keys)
-                    {
                         Console.WriteLine($"Dough size: {size}");
-                    }
                 }
+
                 else if (a == "Sales")
                 {
                     bool check = false;
@@ -572,7 +625,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                     int choice = 0;
                     while (!check)
                     {
-                        Console.WriteLine("Type 'Month' to select orders by Month, or 'Day' to select orders by Day. Type 'Back' to return to menu.");
+                        Console.WriteLine("\nType 'Month' to select orders by Month, or 'Day' to select orders by Day. \nType 'Back' to return to menu.");
                         string timePick = Console.ReadLine();
                         if (timePick == "Day")
                         {
@@ -591,7 +644,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         }
                         else
                         {
-                            Console.WriteLine("");
+                            Console.WriteLine("Invalid input. Please type 'Month', 'Day', or 'Back'");
                         }
                     }
 
@@ -680,8 +733,12 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         int counter = 1;
                         if (storeOrders.Count() == 0)
                         {
-                            Console.WriteLine("\nThere is no sales history at this store.");
+                            if (choice == 1)
+                                Console.WriteLine("\nNo sales were made during the day {day}/{month}/{year}.");
+                            else
+                                Console.WriteLine("\nNo sales were made during the month {month}/{year}.");
                         }
+
                         else
                         {
                             if (choice == 1)
@@ -701,7 +758,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                 {
                     var allUsers = RepoUser.Getp(s.StoreId);
                     int counter = 1;
-                    Console.WriteLine($"Here are all users who have most recently used the store '{s.StoreName}':");
+                    Console.WriteLine($"\nHere are all users who have most recently used the store '{s.StoreName}':");
                     foreach(var u in allUsers)
                     {
                         Console.WriteLine($"User {counter}: {u.UserName} at {u.StoreTime}.");
@@ -710,11 +767,11 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                 }
                 else if (a == "Sign out")
                 {
-                    Console.WriteLine("Returning now \n");
+                    Console.WriteLine("\nReturning now");
                     return;
                 }
                 else
-                    Console.WriteLine("Please input a proper phrase, such as History, Sales, Users, Inventory, or Sign out");
+                    Console.WriteLine("\nPlease input a proper phrase, such as History, Sales, Users, Inventory, or Sign out");
             }
         }
 
@@ -725,42 +782,33 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
             bool Check = false;
             while (!Check)
             {
-                Console.WriteLine("Type 'Sign in' to sign into an existing account. Type 'Register' to register a new user or store.");
+                Console.WriteLine("\nType 'Sign in' to sign into an existing account. \nType 'Register' to register a new user or store.");
                 String a = Console.ReadLine();
                 if (a == "Sign in")
                 {
                     while (!Check)
                     {
-
-                        Console.WriteLine("\n");
-                        Console.WriteLine("Type 'User' to sign in as a user. Type 'Store' to sign in as a store.");
+                        Console.WriteLine("\nType 'User' to sign in as a user.\nType 'Store' to sign in as a store.");
                         string a2 = Console.ReadLine();
                         if (a2 == "User")
                         {
                             while (!Check)
                             {
-
-                                Console.WriteLine("\n");
-                                Console.WriteLine("Type your personal username.");
+                                Console.WriteLine("\nType your personal username.");
                                 string b = Console.ReadLine();
-
-                                Console.WriteLine("\n");
-                                Console.WriteLine("Type your password.");
+                                Console.WriteLine("\nType your password.");
                                 string c = Console.ReadLine();
-                                Users temp = new Users();
-                                temp.UserName = b;
-                                temp.UserCode = c;
+                                Users temp = new Users(b,c);
                                 Users result = RepoUser.AccessP(temp);
                                 if (result != null)
                                 {
-
                                     Console.WriteLine("\n");
                                     Check = true;
                                     UserDecision(result, pdb);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Username or Password failed. Type 'Yes' to try again. Type anything else to return.");
+                                    Console.WriteLine("Username or Password failed. \nType 'Yes' to try again. \nType anything else to return.");
                                     string retry = Console.ReadLine();
                                     if (retry != "Yes")
                                         Check = true;
@@ -771,17 +819,11 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         {
                             while (!Check)
                             {
-
-                                Console.WriteLine("\n");
-                                Console.WriteLine("Type your Store's username.");
+                                Console.WriteLine("\nType your Store's username.");
                                 string b = Console.ReadLine();
-
-                                Console.WriteLine("\n");
-                                Console.WriteLine("Type your password.");
+                                Console.WriteLine("\nType your password.");
                                 string c = Console.ReadLine();
-                                Stores temp = new Stores();
-                                temp.StoreName = b;
-                                temp.StoreCode = c;
+                                Stores temp = new Stores(b,c);
                                 Stores result = RepoStore.AccessP(temp);
                                 if (result != null)
                                 {
@@ -791,7 +833,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Username or Password failed. Type 'Yes' to try again.");
+                                    Console.WriteLine("\nUsername or Password failed. \nType 'Yes' to try again.");
                                     string retry = Console.ReadLine();
                                     if (retry != "Yes")
                                         Check = true;
@@ -799,31 +841,27 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                             }
                         }
                         else
-                            Console.WriteLine("Invalid input. Please state Store or User.");
+                            Console.WriteLine("\nInvalid input. Please state Store or User.");
                     }
                 }
                 else if (a == "Register")
                 {
                     while (!Check)
                     {
-                        Console.WriteLine("\n");
-                        Console.WriteLine("Type 'User' to register as a new user. Type 'Store' to register as a new store.");
+                        Console.WriteLine("\nType 'User' to register as a new user. \nType 'Store' to register as a new store.");
                         string b = Console.ReadLine();
                         if (b == "User")
                         {
-                            Console.WriteLine("\n");
                             string c = "";
                             string d = "";
                             bool Check4 = false;
                             Users tempUser = new Users();
                             while (!Check4)
                             {
-                                Console.WriteLine("Type your new username.");
+                                Console.WriteLine("\nType your new username.");
                                 c = Console.ReadLine();
                                 if((c.Length > 50) || c == null)
-                                {
                                     Console.WriteLine("Username invalid. Retype your new username. Make sure it is less than 50 letters.");
-                                }
                                 else
                                 {
                                     Check4 = true;
@@ -832,18 +870,17 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                             }
                             while(Check4)
                             {
-                                Console.WriteLine("Type your new password.");
+                                Console.WriteLine("\nType your new password.");
                                 d = Console.ReadLine();
                                 if(d.Length > 50 || d==null)
-                                {
                                     Console.WriteLine("Invalid password. Retype your password. Make sure it is 50 letters or less.");
-                                }
                                 else
                                 {
                                     Check4 = false;
                                     tempUser.UserCode = d;
                                 }
                             }
+
                             tempUser = RepoUser.Addp(tempUser);
                             if (tempUser != null)
                             {
@@ -853,29 +890,24 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                             else
                             {
                                 Console.WriteLine("The provided username already exists in the database. Please provide an unused username.\n" +
-                                    "Type 'Yes' to retry registration. Type anything else to return.");
+                                    "Type 'Yes' to retry registration. \nType anything else to return.");
                                 string final = Console.ReadLine();
                                 if(final != "Yes")
-                                {
                                     Check = true;
-                                }
                             }
                         }
                         else if (b == "Store")
                         {
-                            Console.WriteLine("\n");
                             string c = "";
                             string d = "";
                             Stores tempStore = new Stores();
                             bool Check5 = false; 
                             while (!Check5)
                             {
-                                Console.WriteLine("Type your new store's username.");
+                                Console.WriteLine("\nType your new store's username.");
                                 c = Console.ReadLine();
                                 if(c.Length > 50 || c == null)
-                                {
-                                    Console.WriteLine("Name will not work. Please retype your username. Make sure it is 50 letters or less.");
-                                }
+                                    Console.WriteLine("\nName will not work. Please retype your username. Make sure it is 50 letters or less.");
                                 else
                                 {
                                     Check5 = true;
@@ -884,12 +916,10 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                             }
                             while (Check5)
                             {
-                                Console.WriteLine("Type your new store's password.");
+                                Console.WriteLine("\nType your new store's password.");
                                 d = Console.ReadLine();
                                 if(d.Length > 50 || d == null)
-                                {
-                                    Console.WriteLine("Invalid password. Please retype password. Make sure it is 50 letters or less.");
-                                }
+                                    Console.WriteLine("\nInvalid password. Please retype password. Make sure it is 50 letters or less.");
                                 else
                                 {
                                     Check5 = false;
@@ -904,13 +934,11 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                             }
                             else
                             {
-                                Console.WriteLine("The provided storename already exists in the database. Please provide an unused storename.\n" +
-                                    "Type 'Yes' to retry registration. Type anything else to return.");
+                                Console.WriteLine("\nThe provided storename already exists in the database. Please provide an unused storename.\n" +
+                                    "Type 'Yes' to retry registration. \nType anything else to return.");
                                 string final = Console.ReadLine();
                                 if (final != "Yes")
-                                {
                                     Check = true;
-                                }
                             }
                         }
                         else
@@ -943,49 +971,20 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
             toppingLibrary.Add("Olive", 239.99m);
             toppingLibrary.Add("Pineapple", 1.00m);
 
-            var configBuilder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true,
-                reloadOnChange: true);
-            IConfigurationRoot configuration = configBuilder.Build();
+            presetList.Add("Hawaiian");
+            presetList.Add("BBQ");
+            presetList.Add("American");
+            presetList.Add("Canadian");
+            presetList.Add("Italian");
+            presetList.Add("Rich");
 
-            var optionsBuilder = new DbContextOptionsBuilder<PizzaDBContext>();
-            optionsBuilder.UseSqlServer(configuration.GetConnectionString("PizzaDb"));
-            var options = optionsBuilder.Options;
-            PizzaDBContext pdb = new PizzaDBContext(options);
+            PizzaDBContext pdb = Client.CreateContext.returnContext();
             bool check = false;
             while (!check)
                 LogIn(pdb);
-        }
-           
-          
-            //MY PROJECT, BASICALLY EVERYTHING IS UP TO ME ... 
-            //Give user the chance to Log In or Register. Only proceed if they eventually sign in. Sign in as a user or store.
-            //Back space or Sign out button is always offered if Users or Stores change their minds.
-
-            //Use Stacks (First in, Last out) to represent Order History. Maybe have Two sales lists to store orders by month and day.
-
-            //Users are allowed to sign out, View order History, and Locate stores. (Pizza requires a store)
-            //If users look for location, offer list of stores.(Eventually offer search or by state, but for now list is fine).
-            //If user selects store, check history to see if they used another store within 24 hours.
-
-            //If they have not used another store, they are given a chance to make an order. Offer a list of preset pizza's or a custom option.
-            //If preset is selected, list of toppings and accessories are used to create this order. 
-            //Users are allowed to alternate crust and size at this point. (Possibly toppings if time permits)
-            //If user chooses custom, crust and size are determined by users (Required fields to progress). Maybe Topping (Cheese/Sauce default)
-
-            //After a preset or custom pizza is picked, the cost is calculated and recorded.
-            //Offer user a chance to order more pizzas (Eventually offer a quantity option). Also a chance to preview order(all pizzas w/ toppings).
-
-            //Once an order is submitted/confirmed, if cost exceeds 250, alert user. If amount of pizza ever exceeds 100, alert user.
-            //If order is satisfactory, and no others within 2 hours, add orders to store and user order history.
-            //If first order in 24 hours, set location as mandatory store for 24 hours. 
+        }   
+            //Also a chance to preview order(all pizzas w/ toppings).
             
-            //If user selects History, we see list/stack of all previous orders. The top one is most recent.    
-
-            //Stores are allowed to sign out, view their order history, their sales history, their inventory, and their userbase.
-            //If select sales, stores can choose to view by month or day. 
-
-            //If user or store decides to log out, go back to first screen and remove all unnecessary data. Require log-in/registration.
+            //If user selects History, we see list/stack of all previous orders. The top one is most recent.                
     }
 }

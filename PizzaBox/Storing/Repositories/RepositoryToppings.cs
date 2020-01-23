@@ -41,7 +41,13 @@ namespace Storing.Repositories
         {
             throw new NotImplementedException();
         }
-
+        public IEnumerable<Toppings> Getp(Pizzas p)
+        {
+            var query = from a in pdb.Toppings
+                        where (a.PizzaId == p.PizzaId)
+                        select Mapper.MapTopping(a);
+            return query;
+        }
         public Toppings AccessP(Toppings p)
         {
             throw new NotImplementedException();

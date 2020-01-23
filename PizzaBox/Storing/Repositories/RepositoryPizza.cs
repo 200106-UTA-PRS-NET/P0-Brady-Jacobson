@@ -22,11 +22,8 @@ namespace Storing.Repositories
 
         public Pizzas AccessP(Pizzas p)
         {
-            //TO DO will this always work?
-            //Order by descending than first.
             var aa = pdb.Pizzas.OrderByDescending(d => d.PizzaId);
             var a = aa.FirstOrDefault(d => d.OrderId == p.OrderId);
-            //var a = pdb.Pizzas.LastOrDefault(d => d.OrderId == p.OrderId);
             return a;
         }
 
@@ -34,11 +31,6 @@ namespace Storing.Repositories
         {
             pdb.Pizzas.Add(p);
             pdb.SaveChanges();
-            //TO DO will this always work?
-            ////Order by descending than first.
-            //var aa = pdb.Pizzas.OrderByDescending(d => d.PizzaId);
-            //var a = aa.FirstOrDefault(d => d.OrderId == p.OrderId);
-            //var a = pdb.Pizzas.LastOrDefault(d => d.OrderId == p.OrderId);
             return p;
         }
 

@@ -16,6 +16,16 @@ namespace Domain
             };
         }
 
+        public static Models.Toppings MapTopping(Models.Toppings t)
+        {
+            return new Models.Toppings()
+            {
+                Topping = t.Topping,
+                ToppingId = t.ToppingId,
+                PizzaId = t.PizzaId
+            };
+        }
+
         public static Models.Users MapUser(Models.Users u)
         {
             return new Models.Users()
