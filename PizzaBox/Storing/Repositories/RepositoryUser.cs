@@ -4,6 +4,7 @@ using System.Text;
 using Domain.Models;
 using Domain.Interfaces;
 using System.Linq;
+using Domain;
 
 namespace Storing.Repositories
 {
@@ -21,35 +22,12 @@ namespace Storing.Repositories
 
         public Users Addp(Users p)
         {
-            //TO DO: Update c and d's default values.
-            string c = "";
-            string d = "";
-            bool check = false;
-            while (!check) 
-            {
-                Console.WriteLine("Type your new username.");
-                c = Console.ReadLine();
-                if (pdb.Users.Any(e => e.UserName == c) || c.Length > 50 || c == null)
-                    Console.WriteLine("Name will not work. Please input an unused name that is 50 letters or less.");
-                else
-                    check = true;
-            }
-            while (check) 
-            {
-                Console.WriteLine("Type your new password.");
-                d = Console.ReadLine();
-                if (d.Length > 50 || d == null)
-                    Console.WriteLine("Invalid password. Please try a password that is 50 letters or less.");
-                else
-                    check = false;
-            }
-            Users tempUser = new Users();
-            tempUser.UserName = c;
-            tempUser.UserCode = d;
-            pdb.Users.Add(tempUser);
+            if (pdb.Users.Any(e => e.UserName == p.UserName))
+                return null;
+            pdb.Users.Add(p);
             pdb.SaveChanges();
-            var a = pdb.Users.FirstOrDefault(d => d.UserName == tempUser.UserName);
-            Console.WriteLine($"Added User {c} to Table 'Users'");
+            var a = pdb.Users.FirstOrDefault(d => d.UserName == p.UserName);
+            Console.WriteLine($"Added User {a.UserName} to Table 'Users'");
             return a;
         }
             
@@ -62,6 +40,14 @@ namespace Storing.Repositories
         public IEnumerable<Users> Getp()
         {
             throw new NotImplementedException();
+        }
+
+        public IEnumerable<Users> Getp(int p)
+        {
+            var query = from a in pdb.Users
+                        where (a.StoreId == p)
+                        select Mapper.MapUser(a);
+            return query;
         }
 
         public void Modifyp(Users p)

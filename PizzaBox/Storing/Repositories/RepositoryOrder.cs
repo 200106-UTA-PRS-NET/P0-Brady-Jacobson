@@ -26,7 +26,6 @@ namespace Storing.Repositories
             pdb.SaveChanges();
 
             var a = pdb.Orders.FirstOrDefault(d => d.OrderTime == p.OrderTime && d.User == p.User && d.Store == p.Store);
-            Console.WriteLine($"Added Order to Table 'Orders'");
             return a;
         }
 
@@ -35,6 +34,7 @@ namespace Storing.Repositories
             throw new NotImplementedException();
         }
 
+        //TO DO: make it month based.
         public IEnumerable<Orders> Getp(Users b)
         {
             var query = from a in pdb.Orders where(a.UserId == b.UserId)
@@ -47,6 +47,24 @@ namespace Storing.Repositories
                         where (a.StoreId == b.StoreId)
                         select Mapper.MapOrder(a);
             return query;
+        }
+
+        public IEnumerable<Orders> Getp(DateTime early, Stores st, int choice)
+        {
+            if (choice == 1)
+            { 
+                var query = from a in pdb.Orders
+                            where (a.OrderTime.Day == early.Day && st.StoreId == a.StoreId)
+                            select Mapper.MapOrder(a);
+                return query;
+            }
+            else
+            {
+                var query = from a in pdb.Orders
+                            where (a.OrderTime.Month == early.Month && st.StoreId == a.StoreId)
+                            select Mapper.MapOrder(a);
+                return query;
+            }
         }
 
         public void Modifyp(Orders p)

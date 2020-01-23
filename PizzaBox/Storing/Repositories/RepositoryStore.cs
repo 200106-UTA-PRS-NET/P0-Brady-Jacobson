@@ -22,37 +22,15 @@ namespace Storing.Repositories
 
         public Stores Addp(Stores p)
         {
-            string c = "";
-            string d = "";
-            bool check = false;
-            while (!check)
-            {
-                Console.WriteLine("Type your new store's username.");
-                c = Console.ReadLine();
-                if (pdb.Stores.Any(e => e.StoreName == c) || c.Length > 50 || c == null)
-                    Console.WriteLine("Name will not work. Please input an unused name that is 50 letters or less.");
-                else
-                    check = true;
-            }
-            while (check)
-            {
-                Console.WriteLine("Type your new store's password.");
-                d = Console.ReadLine();
-                if (d.Length > 50 || d == null)
-                    Console.WriteLine("Invalid password. Please try a password that is 50 letters or less.");
-                else
-                    check = false;
-            }
-            Stores tempStore = new Stores();
-            tempStore.StoreName = c;
-            tempStore.StoreCode = d;
-            pdb.Stores.Add(tempStore);
+            if (pdb.Stores.Any(e => e.StoreName == p.StoreName))
+                return null;
+            pdb.Stores.Add(p);
             pdb.SaveChanges();
-            //TO DO: Replace with tempstore?
-            var a = pdb.Stores.FirstOrDefault(d => d.StoreName == tempStore.StoreName);
-            Console.WriteLine($"Added Store {c} to Table 'Stores'");
+            var a = pdb.Stores.FirstOrDefault(d => d.StoreName == p.StoreName);
+            Console.WriteLine($"Added Store {a.StoreName} to Table 'Stores'");
             return a;
         }
+
         public void Deletep(Stores p)
         {
             throw new NotImplementedException();
@@ -85,6 +63,19 @@ namespace Storing.Repositories
             return null;
         }
 
+        public Stores UseIDFindStore(int p)
+        {
+            if(pdb.Stores.Any(d=>d.StoreId == p))
+            {
+                var a = pdb.Stores.FirstOrDefault(d => d.StoreId == p);
+                return a;
+            }
+            else
+            {
+                Console.WriteLine("Error: The store ID provided does not have an associated store. The store was possibly deleted.");
+            }
+            return null;
+        }
         public Stores Findp(string name)
         {
             if(pdb.Stores.Any(d => d.StoreName == name))

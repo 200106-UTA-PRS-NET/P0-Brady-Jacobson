@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using Domain.Models;
 using Domain.Interfaces;
+using System.Linq;
+using Domain;
 
 namespace Storing.Repositories
 {
@@ -20,14 +22,23 @@ namespace Storing.Repositories
 
         public Pizzas AccessP(Pizzas p)
         {
-            throw new NotImplementedException();
+            //TO DO will this always work?
+            //Order by descending than first.
+            var aa = pdb.Pizzas.OrderByDescending(d => d.PizzaId);
+            var a = aa.FirstOrDefault(d => d.OrderId == p.OrderId);
+            //var a = pdb.Pizzas.LastOrDefault(d => d.OrderId == p.OrderId);
+            return a;
         }
 
         public Pizzas Addp(Pizzas p)
         {
             pdb.Pizzas.Add(p);
             pdb.SaveChanges();
-            Console.WriteLine($"Added Pizza to table 'Pizzas'");
+            //TO DO will this always work?
+            ////Order by descending than first.
+            //var aa = pdb.Pizzas.OrderByDescending(d => d.PizzaId);
+            //var a = aa.FirstOrDefault(d => d.OrderId == p.OrderId);
+            //var a = pdb.Pizzas.LastOrDefault(d => d.OrderId == p.OrderId);
             return p;
         }
 
@@ -38,7 +49,17 @@ namespace Storing.Repositories
 
         public IEnumerable<Pizzas> Getp()
         {
-            throw new NotImplementedException();
+            var query = from p in pdb.Pizzas
+                        select Mapper.MapPizza(p);
+            return query;
+        }
+
+        public IEnumerable<Pizzas> Getp(string p)
+        {
+            var query = from a in pdb.Pizzas
+                        where (a.OrderId.ToString() == p)
+                        select Mapper.MapPizza(a);
+            return query;
         }
 
         public void Modifyp(Pizzas p)
