@@ -1,4 +1,8 @@
-﻿using System;
+﻿//Brady Jacobson
+//P0
+//Pizza Box
+
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
@@ -12,21 +16,16 @@ namespace Project_0
 
     class Program
     {
-        public static Pizzas Hawaiian = new Pizzas("Original", "8", 6.00m);
-        public static Pizzas BBQ = new Pizzas("Stuffed", "16", 9.49m);
-        public static Pizzas American = new Pizzas("Original", "12", 7.00m);
-        public static Pizzas Canadian = new Pizzas("Stuffed", "8", 7.50m);
-        public static Pizzas Italian = new Pizzas("Thin crust", "8", 7.50m);
-        public static Pizzas Rich = new Pizzas("Stuffed", "12", 130.00m);
-
         public static List<String> presetList = new List<String>();
         public static Dictionary<String, Decimal> priceLibraryS = new Dictionary<string, Decimal>();
         public static Dictionary<String, Decimal> priceLibraryC = new Dictionary<string, Decimal>();
         public static Dictionary<String, Decimal> toppingLibrary = new Dictionary<string, decimal>();
 
 
+        //Allows a user to order a selection of pizza from a store 
         public static void PizzaOrdering(Users u, Stores s, PizzaDBContext pdb)
         {
+            //Creates dictionaries to keep track of the order's parts before being pushed to the database.
             Orders currentOrder = new Orders(s.StoreId, u.UserId, 0, 0.00m);
             Dictionary<int,List<string>> vastToppings = new Dictionary<int, List<string>>();
             Dictionary<int,Pizzas> vastPizzas= new Dictionary<int,Pizzas>();
@@ -40,6 +39,7 @@ namespace Project_0
             string size;
             string crust;
             
+            //The player is allowd to choose which action to perform regarding their order.
             bool check = false;
             Console.WriteLine("\nAt least one pizza must be chosen before an order can be placed. \n " +
                 "No more than 100 pizzas per order can be made. \n" +
@@ -53,12 +53,13 @@ namespace Project_0
                     Console.WriteLine($"Type 'Place order' to submit your order." +
                         $" You have {currentOrder.PizzaAmount} pizzas ordered at a cost of ${currentOrder.Cost}.");
                 }
-
                 string choice = Console.ReadLine();
                 
+                //Returns without placing an order.
                 if (choice == "Back")
                     return;
 
+                //Places the order after making sure the parameters are met.
                 else if (choice == "Place order")
                 {
                     if (currentOrder.PizzaAmount < 0)
@@ -73,6 +74,7 @@ namespace Project_0
                     }
                     else
                     {
+                        //The unique order ID is created when an order record is added, which is used to create each pizza record.
                         Console.WriteLine("Your order will now be placed.");
                         currentOrder.OrderTime = DateTime.Now;
                         Orders IDOrder = RepoOrder.Addp(currentOrder);
@@ -89,6 +91,7 @@ namespace Project_0
                                 Pizzas p2 = RepoPizza.Addp(p);
                                 Pizzas newp = RepoPizza.AccessP(p2);
                                 List<string> tempTop = vastToppings[up];
+                                //The toppings also use the new pizzaID to create the topping records.
                                 foreach (string tt in tempTop)
                                 {
                                     Toppings t = new Toppings();
@@ -106,6 +109,8 @@ namespace Project_0
                         }
                     }
                 }
+
+                //The user will select a premade pizza to add to the order.
                 else if (choice == "Preset")
                 {
                     bool check3 = false;
@@ -113,7 +118,7 @@ namespace Project_0
                     List<string> pToppings = new List<string>(5);
                     while (!check3)
                     {
-                        Console.WriteLine("Type 'Back' to exit.");
+                        Console.WriteLine("\nType 'Back' to exit.");
                         Console.WriteLine("Please Type one of the following options for your pizza.");
                         foreach(String p in presetList)
                         {
@@ -202,6 +207,8 @@ namespace Project_0
                         }
                     }
                 }
+
+                //The user will create their own pizza with unqiue toppings.
                 else if (choice == "Custom")
                 {
                     bool check2 = false;
@@ -211,11 +218,11 @@ namespace Project_0
                     bool skipCustom = false;
                     while (!check2)
                     {
-                        Console.WriteLine("Type 'Back' to exit.");
-                        Console.WriteLine("Here are the different sizes of pizza.");
+                        Console.WriteLine("\nType 'Back' to exit.");
+                        Console.WriteLine("\nHere are the different sizes of pizza.");
                         foreach (string Sdict in priceLibraryS.Keys)
                             Console.WriteLine($"'{Sdict}' at cost {priceLibraryS[Sdict]}");
-                        Console.WriteLine("Type the desired size of pizza.");
+                        Console.WriteLine("\nType the desired size of pizza.");
                         size = Console.ReadLine();
                         if (size == "Back")
                         {
@@ -228,7 +235,6 @@ namespace Project_0
                         {
                             price += priceLibraryS[size];
                             check2 = true;
-                            Console.WriteLine("\n");
                         }
                     }
 
@@ -236,10 +242,10 @@ namespace Project_0
                     {
                         if (skipCustom != true)
                         {
-                            Console.WriteLine("Here are the different types of crusts.");// \n" +
+                            Console.WriteLine("\nHere are the different types of crusts.");// \n" +
                             foreach (string Cdict in priceLibraryC.Keys)
                                 Console.WriteLine($"'{Cdict}' at cost {priceLibraryC[Cdict]}");
-                            Console.WriteLine("Type the name of the crust you want.");
+                            Console.WriteLine("\nType the name of the crust you want.");
                             crust = Console.ReadLine();
                             if (crust == "Back")
                             {
@@ -252,7 +258,6 @@ namespace Project_0
                             {
                                 price += priceLibraryC[crust];
                                 check2 = false;
-                                Console.WriteLine("\n");
                             }
                         }
                         else
@@ -261,13 +266,13 @@ namespace Project_0
                     List<string> pToppings = new List<string>(5);
                     while (!check2)
                     {
-                        Console.WriteLine("Marinara Sauce and Mozzarella Cheese are the default toppings. (both of these toppings are free).\n" +
+                        Console.WriteLine("\nMarinara Sauce and Mozzarella Cheese are the default toppings. (both of these toppings are free).\n" +
                             "Type 'Yes' to replace these toppings with up to 5 of your own personal choice.\n" +
                             "Type 'No' to use the default toppings.");
                         string toppingPhase = Console.ReadLine();
                         if (toppingPhase == "Yes")
                         {
-                            Console.WriteLine("Here is a list of available toppings and prices.");
+                            Console.WriteLine("\nHere is a list of available toppings and prices.");
                             foreach (string top in toppingLibrary.Keys)
                             {
                                 Console.WriteLine($"'{top}' costs {toppingLibrary[top]}");
@@ -346,6 +351,8 @@ namespace Project_0
                         }
                     }
                 }
+
+                //We preview the completed pizzas before placing our order.
                 else if (choice == "Preview")
                 {
                     Console.WriteLine("\nPreview of all Pizzas in your order.");
@@ -363,12 +370,54 @@ namespace Project_0
                         Console.WriteLine($"Toppings include: {cumulative}.");
                     }
                 }
+
                 else
                     Console.WriteLine("Type a valid command.");
             }
             return;
         }
 
+        //FindHistory will take an order and print out every pizza, including toppings, size, crust, and cost.
+        public static bool FindHistory(List<String> templist, PizzaDBContext pdb )
+        {
+            var RepoPizza = new Storing.Repositories.RepositoryPizza(pdb);
+            var RepoTopping = new Storing.Repositories.RepositoryToppings(pdb);
+            Console.WriteLine("\nType the Order ID of the order you would like to better examine.\nType 'Back' to return.");
+            string whatOrder = Console.ReadLine();
+            if (whatOrder == "Back")
+                return true;
+            else if (templist.Contains(whatOrder))
+            {
+                var pizzasInOrder = RepoPizza.Getp(whatOrder);
+                List<Pizzas> ongoingPizzas = new List<Pizzas>();
+                foreach (var p in pizzasInOrder)
+                {
+                    ongoingPizzas.Add(p);
+                }
+                for (int i = 0; i < ongoingPizzas.Count(); i++)
+                {
+                    Console.WriteLine($"    Pizza {i + 1} = Size: {ongoingPizzas[i].Size}, Crust: {ongoingPizzas[i].Crust}, Price: {ongoingPizzas[i].PizzaCost}");
+                    var toppingsInPizza = RepoTopping.Getp(ongoingPizzas[i]);
+                    string cumulative = "";
+                    foreach (var t in toppingsInPizza)
+                    {
+                        if (cumulative == "")
+                            cumulative = $"{t.Topping}";
+                        else
+                            cumulative = cumulative + $", {t.Topping}";
+                    }
+                    Console.WriteLine($"Toppings include: {cumulative}.");
+                }
+                return false;
+            }
+            else
+            {
+                Console.WriteLine("\nThe Order ID is invalid or was not created for this user.");
+                return false;
+            }
+        }
+
+        //ObtainTime is used to record a timeframe for use when finding Sales
         public static int ObtainTime(string type, string example)
         {
             string result = "";
@@ -395,6 +444,8 @@ namespace Project_0
             }
             return result2;
         }
+
+        //The user is allowed to choose different options on how to interact with the Pizza box database.
         public static void UserDecision(Users u, PizzaDBContext pdb)
         {
             var RepoStore = new Storing.Repositories.RepositoryStore(pdb);
@@ -402,8 +453,10 @@ namespace Project_0
             while (!Check)
             {
                 Console.WriteLine($"\nType 'History' to view the users's order history. \nType 'Recent' to view your most recent pizza store. \n" +
-$"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign out of account {u.UserName}.");
+                                  $"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign out of account {u.UserName}.");
                 string a = Console.ReadLine();
+
+                //Order allows the user to order a pizza. The parameters are checked to make sure that we can properly order a pizza from a specific store.
                 if (a == "Order")
                 {
                     bool approve = false;
@@ -470,18 +523,17 @@ $"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign o
                     else
                         Console.WriteLine($"Your most recent order was within 2 hours ago, at {u.StoreTime}. You must wait until it's been 2 hours.");
                 }
+
+                //History prints out all user orders and allows users to view any specific order in depth.
                 else if (a == "History")
                 {
                     var RepoOrder = new Storing.Repositories.RepositoryOrder(pdb);
-                    var RepoPizza = new Storing.Repositories.RepositoryPizza(pdb);
-                    var RepoTopping = new Storing.Repositories.RepositoryToppings(pdb);
-
                     var userOrders = RepoOrder.Getp(u);
                     List<string> templist = new List<string>();
                     Console.WriteLine($"\nHere are the orders made for user {u.UserName}.");
                     foreach (var o in userOrders)
                     {
-                        Console.WriteLine($"Order {o.OrderId}. {o.PizzaAmount} pizzas ordered at {o.OrderTime} at a cost of {o.Cost}");
+                        Console.WriteLine($"Order '{o.OrderId}'. {o.PizzaAmount} pizzas ordered at {o.OrderTime} at a cost of {o.Cost}");
                         templist.Add(o.OrderId.ToString());
                     }
                     bool check3 = false;
@@ -491,38 +543,10 @@ $"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign o
                         check3 = true;
                     }
                     while (!check3)
-                    {
-                        Console.WriteLine("\nType the Order ID of the order you would like to better examine.\nType 'Back' to return.");
-                        string whatOrder = Console.ReadLine();
-                        if (whatOrder == "Back")
-                            check3 = true;
-                        else if (templist.Contains(whatOrder))
-                        {
-                            var pizzasInOrder = RepoPizza.Getp(whatOrder);
-                            List<Pizzas> ongoingPizzas = new List<Pizzas>();
-                            foreach (var p in pizzasInOrder)
-                            {
-                                ongoingPizzas.Add(p);
-                            }
-                            for (int i = 0; i < ongoingPizzas.Count(); i++)
-                            {
-                                Console.WriteLine($"    Pizza {i + 1} = Size: {ongoingPizzas[i].Size}, Crust: {ongoingPizzas[i].Crust}, Price: {ongoingPizzas[i].PizzaCost}");
-                                var toppingsInPizza = RepoTopping.Getp(ongoingPizzas[i]);
-                                string cumulative = "";
-                                foreach (var t in toppingsInPizza)
-                                {
-                                    if (cumulative == "")
-                                        cumulative = $"{t.Topping}";
-                                    else
-                                        cumulative = cumulative + $", {t.Topping}";
-                                }
-                                Console.WriteLine($"Toppings include: {cumulative}.");
-                            }
-                        }
-                        else
-                            Console.WriteLine("\nThe Order ID is invalid or was not created for this user.");
-                    }    
+                        check3 = FindHistory(templist, pdb);  
                 }
+
+                //Recent prints out the time and location of the user's most recent order. This is helpful for the parameter checking.
                 else if (a == "Recent")
                 {
                     if (u.StoreId != null)
@@ -531,17 +555,22 @@ $"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign o
                         Console.WriteLine($"\nYour most recent order was from store {temp.StoreName} at {u.StoreTime}");
                     }
                     else
-                        Console.WriteLine("You have not ordered pizza from a store yet. There is no 'most recent' store.");
+                        Console.WriteLine("\nYou have not ordered pizza from a store yet. There is no 'most recent' store.");
                 }
+                
+                //Returns to the log in menu.
                 else if (a == "Sign out")
                 {
                     Console.WriteLine("Returning now.");
                     return;
                 }
+
                 else
                     Console.WriteLine("Please insput a proper phrase, such as History, Recent, Order, or Sign out");
             }
         }
+
+        //The store is able to choose a variety of options as well.
         public static void StoreDecision(Stores s, PizzaDBContext pdb)
         {
             var RepoOrder = new Storing.Repositories.RepositoryOrder(pdb);
@@ -551,18 +580,20 @@ $"Type 'Order' to view locations and place an order. \nType 'Sign out' to sign o
             bool Check = false;
             while (!Check) {
                 Console.WriteLine($"\nType 'History' to view the store's order history.\nType 'Sales' to view this stores sales history. \n" +
-$"Type 'Inventory' to look at this store's inventory. \nType 'Users' to view which users go to this store. \n" +
-$"Type 'Sign out' to sign out of account {s.StoreName}.");
+                                  $"Type 'Inventory' to look at this store's inventory. \nType 'Users' to view which users go to this store. \n" +
+                                  $"Type 'Sign out' to sign out of account {s.StoreName}.");
                 string a = Console.ReadLine();
+
+                //Shows the store's order history, and allows us to view any specific orders in greater depth.
                 if (a == "History")
                 {
                     var storeOrders = RepoOrder.Getp(s);
-                    List<string> tempList = new List<string>();
+                    List<string> templist = new List<string>();
                     Console.WriteLine($"\nHere is the store {s.StoreName}'s orders.");
                     foreach (var o in storeOrders)
                     {
-                        Console.WriteLine($"Order ID = '{o.OrderId}' placed at time {o.OrderTime}");
-                        tempList.Add(o.OrderId.ToString());
+                        Console.WriteLine($"Order '{o.OrderId}'. {o.PizzaAmount} pizzas ordered at {o.OrderTime} at a cost of {o.Cost}");
+                        templist.Add(o.OrderId.ToString());
                     }
                     bool check3 = false;
                     if (storeOrders.Count() == 0)
@@ -571,39 +602,10 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         check3 = true;
                     }
                     while (!check3)
-                    {
-                        Console.WriteLine("\nType the Order ID of the order you would like to better examine.\nType 'Back' to return.");
-                        string whatOrder = Console.ReadLine();
-                        if (whatOrder == "Back")
-                            check3 = true;
-                        else if (tempList.Contains(whatOrder))
-                        {
-                            var pizzasInOrder = RepoPizza.Getp(whatOrder);
-                            List<Pizzas> ongoingPizzas = new List<Pizzas>();
-                            foreach (var p in pizzasInOrder)
-                            {
-                                ongoingPizzas.Add(p);
-                            }
-                            for(int i = 0; i < ongoingPizzas.Count(); i++)
-                            {
-                                Console.WriteLine($"    Pizza {i+1} = Size: {ongoingPizzas[i].Size}, Crust: {ongoingPizzas[i].Crust}, Price: {ongoingPizzas[i].PizzaCost}");
-                                var toppingsInPizza = RepoTopping.Getp(ongoingPizzas[i]);
-                                string cumulative = "";
-                                foreach (var t in toppingsInPizza)
-                                {
-                                    if (cumulative == "")
-                                        cumulative = $"{t.Topping}";
-                                    else
-                                        cumulative = cumulative + $", {t.Topping}";
-                                }
-                                Console.WriteLine($"Toppings include: {cumulative}.");
-                            }
-                        }
-                        else
-                            Console.WriteLine("\nThe Order ID is invalid or was not created in this store.");
-                    }
+                        check3 = FindHistory(templist, pdb);
                 }
 
+                //Inventory prints out the inventory of the store.
                 else if (a == "Inventory")
                 {
                     Console.WriteLine($"\nHere is the inventory of {s.StoreName}");
@@ -615,6 +617,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         Console.WriteLine($"Dough size: {size}");
                 }
 
+                //Sales prints out the cost of every sale made.
                 else if (a == "Sales")
                 {
                     bool check = false;
@@ -666,7 +669,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                     while (!check)
                     {
                         if (choice == 0)
-                            check = false;
+                            check = true;
                         else
                         {
                             month = ObtainTime("Month", "02");
@@ -734,15 +737,15 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         if (storeOrders.Count() == 0)
                         {
                             if (choice == 1)
-                                Console.WriteLine("\nNo sales were made during the day {day}/{month}/{year}.");
+                                Console.WriteLine($"\nNo sales were made during the day {month}/{day}/{year}.");
                             else
-                                Console.WriteLine("\nNo sales were made during the month {month}/{year}.");
+                                Console.WriteLine($"\nNo sales were made during the month {month}/{year}.");
                         }
 
                         else
                         {
                             if (choice == 1)
-                                Console.WriteLine($"\nHere are the sales on the day {day}/{month}/{year}.");
+                                Console.WriteLine($"\nHere are the sales on the day {month}/{day}/{year}.");
                             else if (choice == 2)
                                 Console.WriteLine($"\nHere are the sales on the month {month}/{year}.");
                             foreach (var o in storeOrders)
@@ -754,6 +757,7 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                     }
                 }
 
+                //Users allows us to see which users most recently used our store, and are therefore required to use our store for a 24 hour period.
                 else if (a == "Users")
                 {
                     var allUsers = RepoUser.Getp(s.StoreId);
@@ -765,16 +769,20 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
                         counter++;
                     }
                 }
+
+                //Return to the log in screen.
                 else if (a == "Sign out")
                 {
                     Console.WriteLine("\nReturning now");
                     return;
                 }
+
                 else
                     Console.WriteLine("\nPlease input a proper phrase, such as History, Sales, Users, Inventory, or Sign out");
             }
         }
 
+        //Log in allows us to log in or register as a store or user. Stores and users have unique menu items.
         public static void LogIn(PizzaDBContext pdb)
         {
             var RepoStore = new Storing.Repositories.RepositoryStore(pdb);
@@ -952,9 +960,11 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
 
         static void Main(string[] args)
         {
+            //Establishing the inventory libraries. 
             priceLibraryC.Add("Thin crust",1.99m);
             priceLibraryC.Add("Original", 1.00m);
             priceLibraryC.Add("Stuffed", 2.50m);
+
             priceLibraryS.Add("8", 5.00m);
             priceLibraryS.Add("12", 6.00m);
             priceLibraryS.Add("16", 6.99m);
@@ -964,7 +974,6 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
             toppingLibrary.Add("Meat Sauce", 1.0m);
             toppingLibrary.Add("Cheddar Cheese", 0.50m);
             toppingLibrary.Add("BBQ Sauce", 0.50m);
-
             toppingLibrary.Add("Sausage", 0.50m);
             toppingLibrary.Add("Pepperoni", 0.45m);
             toppingLibrary.Add("Bacon", 0.99m);
@@ -978,13 +987,11 @@ $"Type 'Sign out' to sign out of account {s.StoreName}.");
             presetList.Add("Italian");
             presetList.Add("Rich");
 
+            //Establish a PizzaDBContext to interact with the database.
             PizzaDBContext pdb = Client.CreateContext.returnContext();
             bool check = false;
             while (!check)
                 LogIn(pdb);
-        }   
-            //Also a chance to preview order(all pizzas w/ toppings).
-            
-            //If user selects History, we see list/stack of all previous orders. The top one is most recent.                
+        }                  
     }
 }
